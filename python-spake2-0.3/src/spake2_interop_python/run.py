@@ -23,10 +23,25 @@ def run():
     # accept a JSON dictionary on stdin, write the results as a JSON
     # dictionary on stdout
     req = json.load(sys.stdin)
+    resp = process(req)
+    json.dump(resp, sys.stdout)
+    sys.exit(0)
+
+# msg1: create instance, run both, return (msg2, key)
+# nothing: create instance, run start, return (msg2, state)
+# msg1, state: rebuild instance, run finish, return (key)
+
+def process(req):
     password = hexstr_to_bytes(req["password_hex"])
     assert isinstance(password, type(b"")), type(password)
-    msg1 = hexstr_to_bytes(req["msg1_hex"])
-    assert isinstance(msg1, type(b"")), type(msg1)
+    msg1 = hexstr_to_bytes(req["msg1_hex"]) if "msg1_hex" in req else None
+    state = req["state"] if "state" in req else None
+    if state is not None:
+        assert msg1 is not None, (msg1, state)
+    if msg1 is not None:
+        assert isinstance(msg1, type(b"")), type(msg1)
+    assert req["which"] in ("A", "B", "Symmetric")
+
     if req["which"] in ("A", "B"):
         idA = hexstr_to_bytes(req["idA_hex"]) if "idA_hex" in req else b""
         assert isinstance(idA, type(b"")), type(idA)
@@ -36,25 +51,36 @@ def run():
         N = hexstr_to_bytes(req["N_hex"]) if "N_hex" in req else None
         assert M is None # can't actually override this yet
         assert N is None
+        klass = {"A": spake2.SPAKE2_A,
+                 "B": spake2.SPAKE2_B}[req["which"]]
+        if state is None:
+            s = klass(password, idA=idA, idB=idB)
+            if msg1 is None:
+                return {"msg2_hex": bytes_to_hexstr(s.start()),
+                        "state": s.serialize() }
+            else:
+                return {"msg2_hex": bytes_to_hexstr(s.start()),
+                        "key_hex": bytes_to_hexstr(s.finish(msg1)),
+                        }
+        else:
+            s = klass.from_serialized(state)
+            return {"key_hex": bytes_to_hexstr(s.finish(msg1)),
+                    }
     elif req["which"] == "Symmetric":
         idS = hexstr_to_bytes(req["idS_hex"]) if "idS_hex" in req else b""
         S = hexstr_to_bytes(req["S_hex"]) if "S_hex" in req else None
         assert S is None
-    if req["which"] == "A":
-        s = spake2.SPAKE2_A(password, idA=idA, idB=idB)
-        msg2 = s.start()
-        key = s.finish(msg1)
-    elif req["which"] == "B":
-        s = spake2.SPAKE2_B(password, idA=idA, idB=idB)
-        msg2 = s.start()
-        key = s.finish(msg1)
-    elif req["which"] == "Symmetric":
-        s = spake2.SPAKE2_Symmetric(password, idSymmetric=idS)
-        msg2 = s.start()
-        key = s.finish(msg1)
 
-    r = {"msg2_hex": bytes_to_hexstr(msg2),
-         "key_hex": bytes_to_hexstr(key),
-         }
-    json.dump(r, sys.stdout)
-    sys.exit(0)
+        if state is None:
+            s = spake2.SPAKE2_Symmetric(password, idSymmetric=idS)
+            if msg1 is None:
+                return {"msg2_hex": bytes_to_hexstr(s.start()),
+                        "state": s.serialize() }
+            else:
+                return {"msg2_hex": bytes_to_hexstr(s.start()),
+                        "key_hex": bytes_to_hexstr(s.finish(msg1)),
+                        }
+        else:
+            s = spake2.SPAKE2_Symmetric.from_serialized(state)
+            return {"key_hex": bytes_to_hexstr(s.finish(msg1)),
+                    }
