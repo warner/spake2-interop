@@ -1,0 +1,41 @@
+from __future__ import print_function
+import sys, json
+from binascii import hexlify, unhexlify
+import requests
+
+# one version per server
+
+def bytes_to_hexstr(b):
+    assert isinstance(b, type(b""))
+    hexstr = hexlify(b).decode("ascii")
+    assert isinstance(hexstr, type(u""))
+    return hexstr
+def hexstr_to_bytes(hexstr):
+    assert isinstance(hexstr, type(u""))
+    b = unhexlify(hexstr.encode("ascii"))
+    assert isinstance(b, type(b""))
+    return b
+
+def run():
+    urlA = sys.argv[1]
+    urlB = sys.argv[2]
+
+    password = b"password"
+    ph = bytes_to_hexstr(password)
+
+    a1 = requests.post(urlA, json=dict(password_hex=ph)).json()
+    print("A1:", a1)
+    b1 = requests.post(urlB, json=dict(password_hex=ph,
+                                       msg_in_hex=a1["msg_out_hex"])).json()
+    print("B1:", b1)
+    a2 = requests.post(urlA, json=dict(password_hex=ph,
+                                       state=a1["state"],
+                                       msg_in_hex=b1["msg_out_hex"])).json()
+    print("A2:", a2)
+    print("A key:", b1["key_hex"])
+    print("B key:", a2["key_hex"])
+    print("match:", b1["key_hex"] == a2["key_hex"])
+
+if __name__ == '__main__':
+    run()
+

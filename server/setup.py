@@ -19,5 +19,6 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     install_requires=[
         "twisted",
+        "requests",
         ],
     )
