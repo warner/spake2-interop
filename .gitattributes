@@ -1,1 +1,2 @@
-src/spake2_interop_server/_version.py export-subst
+server/src/spake2_interop_server/_version.py export-subst
+python-spake2-0.7/src/spake2_interop_python/_version.py export-subst
