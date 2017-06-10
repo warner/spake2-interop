@@ -34,12 +34,12 @@ def run():
 def process(req):
     password = hexstr_to_bytes(req["password_hex"])
     assert isinstance(password, type(b"")), type(password)
-    msg1 = hexstr_to_bytes(req["msg1_hex"]) if "msg1_hex" in req else None
+    msg_in = hexstr_to_bytes(req["msg_in_hex"]) if "msg_in_hex" in req else None
     state = req["state"] if "state" in req else None
     if state is not None:
-        assert msg1 is not None, (msg1, state)
-    if msg1 is not None:
-        assert isinstance(msg1, type(b"")), type(msg1)
+        assert msg_in is not None, (msg_in, state)
+    if msg_in is not None:
+        assert isinstance(msg_in, type(b"")), type(msg_in)
     assert req["which"] in ("A", "B", "Symmetric")
 
     if req["which"] in ("A", "B"):
@@ -55,16 +55,16 @@ def process(req):
                  "B": spake2.SPAKE2_B}[req["which"]]
         if state is None:
             s = klass(password, idA=idA, idB=idB)
-            if msg1 is None:
-                return {"msg2_hex": bytes_to_hexstr(s.start()),
+            if msg_in is None:
+                return {"msg_out_hex": bytes_to_hexstr(s.start()),
                         "state": s.serialize() }
             else:
-                return {"msg2_hex": bytes_to_hexstr(s.start()),
-                        "key_hex": bytes_to_hexstr(s.finish(msg1)),
+                return {"msg_out_hex": bytes_to_hexstr(s.start()),
+                        "key_hex": bytes_to_hexstr(s.finish(msg_in)),
                         }
         else:
             s = klass.from_serialized(state)
-            return {"key_hex": bytes_to_hexstr(s.finish(msg1)),
+            return {"key_hex": bytes_to_hexstr(s.finish(msg_in)),
                     }
     elif req["which"] == "Symmetric":
         idS = hexstr_to_bytes(req["idS_hex"]) if "idS_hex" in req else b""
@@ -73,14 +73,14 @@ def process(req):
 
         if state is None:
             s = spake2.SPAKE2_Symmetric(password, idSymmetric=idS)
-            if msg1 is None:
-                return {"msg2_hex": bytes_to_hexstr(s.start()),
+            if msg_in is None:
+                return {"msg_out_hex": bytes_to_hexstr(s.start()),
                         "state": s.serialize() }
             else:
-                return {"msg2_hex": bytes_to_hexstr(s.start()),
-                        "key_hex": bytes_to_hexstr(s.finish(msg1)),
+                return {"msg_out_hex": bytes_to_hexstr(s.start()),
+                        "key_hex": bytes_to_hexstr(s.finish(msg_in)),
                         }
         else:
             s = spake2.SPAKE2_Symmetric.from_serialized(state)
-            return {"key_hex": bytes_to_hexstr(s.finish(msg1)),
+            return {"key_hex": bytes_to_hexstr(s.finish(msg_in)),
                     }
