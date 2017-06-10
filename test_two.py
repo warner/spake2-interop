@@ -16,21 +16,25 @@ def hexstr_to_bytes(hexstr):
     assert isinstance(b, type(b""))
     return b
 
+password = b"password"
+base = dict(password_hex=bytes_to_hexstr(password),
+            #params="1024",
+            )
+
+def call(url, **extra):
+    args = base.copy()
+    args.update(**extra)
+    return requests.post(url, json=args).json()
+
 def run():
     urlA = sys.argv[1]
     urlB = sys.argv[2]
 
-    password = b"password"
-    ph = bytes_to_hexstr(password)
-
-    a1 = requests.post(urlA, json=dict(password_hex=ph)).json()
+    a1 = call(urlA)
     print("A1:", a1)
-    b1 = requests.post(urlB, json=dict(password_hex=ph,
-                                       msg_in_hex=a1["msg_out_hex"])).json()
+    b1 = call(urlB, msg_in_hex=a1["msg_out_hex"])
     print("B1:", b1)
-    a2 = requests.post(urlA, json=dict(password_hex=ph,
-                                       state=a1["state"],
-                                       msg_in_hex=b1["msg_out_hex"])).json()
+    a2 = call(urlA, state=a1["state"], msg_in_hex=b1["msg_out_hex"])
     print("A2:", a2)
     print("A key:", b1["key_hex"])
     print("B key:", a2["key_hex"])

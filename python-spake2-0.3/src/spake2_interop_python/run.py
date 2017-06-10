@@ -1,6 +1,7 @@
 import sys, json
 from binascii import hexlify, unhexlify
 import spake2
+from spake2.params import (ParamsEd25519, Params1024, Params2048, Params3072)
 
 # one version per server
 
@@ -42,6 +43,12 @@ def process(req):
         assert isinstance(msg_in, type(b"")), type(msg_in)
     assert req["which"] in ("A", "B", "Symmetric")
 
+    params = {"Ed25519": ParamsEd25519,
+              "1024": Params1024,
+              "2048": Params2048,
+              "3072": Params3072,
+              }[req.get("params", "Ed25519")]
+
     if req["which"] in ("A", "B"):
         idA = hexstr_to_bytes(req["idA_hex"]) if "idA_hex" in req else b""
         assert isinstance(idA, type(b"")), type(idA)
@@ -54,16 +61,17 @@ def process(req):
         klass = {"A": spake2.SPAKE2_A,
                  "B": spake2.SPAKE2_B}[req["which"]]
         if state is None:
-            s = klass(password, idA=idA, idB=idB)
+            s = klass(password, idA=idA, idB=idB, params=params)
             if msg_in is None:
                 return {"msg_out_hex": bytes_to_hexstr(s.start()),
+                        #"secret_scalar"
                         "state": s.serialize() }
             else:
                 return {"msg_out_hex": bytes_to_hexstr(s.start()),
                         "key_hex": bytes_to_hexstr(s.finish(msg_in)),
                         }
         else:
-            s = klass.from_serialized(state)
+            s = klass.from_serialized(state, params=params)
             return {"key_hex": bytes_to_hexstr(s.finish(msg_in)),
                     }
     elif req["which"] == "Symmetric":
@@ -72,7 +80,8 @@ def process(req):
         assert S is None
 
         if state is None:
-            s = spake2.SPAKE2_Symmetric(password, idSymmetric=idS)
+            s = spake2.SPAKE2_Symmetric(password, idSymmetric=idS,
+                                        params=params)
             if msg_in is None:
                 return {"msg_out_hex": bytes_to_hexstr(s.start()),
                         "state": s.serialize() }
@@ -81,6 +90,6 @@ def process(req):
                         "key_hex": bytes_to_hexstr(s.finish(msg_in)),
                         }
         else:
-            s = spake2.SPAKE2_Symmetric.from_serialized(state)
+            s = spake2.SPAKE2_Symmetric.from_serialized(state, params=params)
             return {"key_hex": bytes_to_hexstr(s.finish(msg_in)),
                     }
