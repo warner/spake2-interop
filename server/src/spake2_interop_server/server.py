@@ -1,3 +1,4 @@
+import json
 from attr import attrs, attrib
 from attr.validators import instance_of
 from twisted.python import usage, log
@@ -13,12 +14,14 @@ import subprocess
 
 @attrs
 class Dispatcher(resource.Resource, object):
+    _which = attrib(validator=instance_of(type("")))
     _cmd_path = attrib(validator=instance_of(type(b"")))
         
     def render_POST(self, request):
-        req_data = request.content.read()
+        req = json.load(request.content)
+        req["which"] = self._which
+        req_data = json.dumps(req)
 
-        #(out, err, rc) = yield getProcessOutputAndValue(self._cmd_path
         p = subprocess.Popen([self._cmd_path],
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -30,6 +33,13 @@ class Dispatcher(resource.Resource, object):
                 self._cmd_path, rc, err))
             raise ValueError()
         return output
+
+class ABS(resource.Resource, object):
+    def __init__(self, cmd_path):
+        resource.Resource.__init__(self)
+        self.putChild(b"A", Dispatcher("A", cmd_path))
+        self.putChild(b"B", Dispatcher("B", cmd_path))
+        self.putChild(b"Symmetric", Dispatcher("Symmetric", cmd_path))
 
 
 # 'twist' will load this file and look for 'Options' and 'makeService'
@@ -46,8 +56,8 @@ def makeService(config):
     site = server.Site(root)
 
     root.putChild(b"", static.Data(b"SPAKE2 interop server", "text/plain"))
-    root.putChild(b"0.3", Dispatcher("ve-p03/bin/spake2_interop_python_0_3"))
-    root.putChild(b"0.7", Dispatcher("ve-p07/bin/spake2_interop_python_0_7"))
+    root.putChild(b"0.3", ABS("ve-p03/bin/spake2_interop_python_0_3"))
+    root.putChild(b"0.7", ABS("ve-p07/bin/spake2_interop_python_0_7"))
 
     ep = endpoints.serverFromString(reactor, config["port"])
     s = internet.StreamServerEndpointService(ep, site)
