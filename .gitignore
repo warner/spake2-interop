@@ -99,4 +99,4 @@ ENV/
 
 # mypy
 .mypy_cache/
-/src/twisted/plugins/dropin.cache
+/server/src/twisted/plugins/dropin.cache
