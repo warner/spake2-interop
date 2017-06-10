@@ -39,7 +39,7 @@ class ABS(resource.Resource, object):
         resource.Resource.__init__(self)
         self.putChild(b"A", Dispatcher("A", cmd_path))
         self.putChild(b"B", Dispatcher("B", cmd_path))
-        self.putChild(b"Symmetric", Dispatcher("Symmetric", cmd_path))
+        self.putChild(b"S", Dispatcher("Symmetric", cmd_path))
 
 
 # 'twist' will load this file and look for 'Options' and 'makeService'
