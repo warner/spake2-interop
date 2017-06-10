@@ -1,0 +1,3 @@
+include versioneer.py
+include src/spake2_interop_server/_version.py
+include src/spake2_interop_python/_version.py

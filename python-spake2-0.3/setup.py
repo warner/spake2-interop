@@ -6,7 +6,7 @@ from setuptools import setup
 import versioneer
 
 setup(
-    name="spake2-interop-python-spake2-0.7",
+    name="spake2-interop-python-spake2-0.3",
     version=versioneer.get_version(),
     author="Brian Warner",
     author_email="warner@lothar.com",
@@ -18,12 +18,12 @@ setup(
     license="MIT",
     cmdclass=versioneer.get_cmdclass(),
     install_requires=[
-        "spake2==0.7",
+        "spake2==0.3",
         ],
       entry_points={
           "console_scripts":
           [
-              "spake2_interop_python_0_7 = spake2_interop_python:run",
+              "spake2_interop_python_0_3 = spake2_interop_python:run",
           ]
       },
     )

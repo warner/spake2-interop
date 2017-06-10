@@ -46,6 +46,7 @@ def makeService(config):
     site = server.Site(root)
 
     root.putChild(b"", static.Data(b"SPAKE2 interop server", "text/plain"))
+    root.putChild(b"0.3", Dispatcher("ve-p03/bin/spake2_interop_python_0_3"))
     root.putChild(b"0.7", Dispatcher("ve-p07/bin/spake2_interop_python_0_7"))
 
     ep = endpoints.serverFromString(reactor, config["port"])
