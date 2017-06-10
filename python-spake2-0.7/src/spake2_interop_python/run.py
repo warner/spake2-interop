@@ -49,6 +49,7 @@ def process(req):
               "3072": Params3072,
               }[req.get("params", "Ed25519")]
 
+    rc = {}
     if req["which"] in ("A", "B"):
         idA = hexstr_to_bytes(req["idA_hex"]) if "idA_hex" in req else b""
         assert isinstance(idA, type(b"")), type(idA)
@@ -63,17 +64,18 @@ def process(req):
         if state is None:
             s = klass(password, idA=idA, idB=idB, params=params)
             if msg_in is None:
-                return {"msg_out_hex": bytes_to_hexstr(s.start()),
-                        #"secret_scalar"
-                        "state": s.serialize() }
+                rc["msg_out_hex"] = bytes_to_hexstr(s.start())
+                rc["state"] = s.serialize()
             else:
-                return {"msg_out_hex": bytes_to_hexstr(s.start()),
-                        "key_hex": bytes_to_hexstr(s.finish(msg_in)),
-                        }
+                rc["msg_out_hex"] = bytes_to_hexstr(s.start())
+                rc["key_hex"] = bytes_to_hexstr(s.finish(msg_in))
         else:
             s = klass.from_serialized(state, params=params)
-            return {"key_hex": bytes_to_hexstr(s.finish(msg_in)),
-                    }
+            rc["key_hex"] = bytes_to_hexstr(s.finish(msg_in))
+        rc["M_hex"] = bytes_to_hexstr(s.params.M.to_bytes())
+        rc["N_hex"] = bytes_to_hexstr(s.params.N.to_bytes())
+        rc["my_blinding_hex"] = bytes_to_hexstr(s.my_blinding().to_bytes())
+        rc["my_unblinding_hex"] = bytes_to_hexstr(s.my_unblinding().to_bytes())
     elif req["which"] == "Symmetric":
         idS = hexstr_to_bytes(req["idS_hex"]) if "idS_hex" in req else b""
         S = hexstr_to_bytes(req["S_hex"]) if "S_hex" in req else None
@@ -83,13 +85,17 @@ def process(req):
             s = spake2.SPAKE2_Symmetric(password, idSymmetric=idS,
                                         params=params)
             if msg_in is None:
-                return {"msg_out_hex": bytes_to_hexstr(s.start()),
-                        "state": s.serialize() }
+                rc["msg_out_hex"] = bytes_to_hexstr(s.start())
+                rc["state"] = s.serialize()
             else:
-                return {"msg_out_hex": bytes_to_hexstr(s.start()),
-                        "key_hex": bytes_to_hexstr(s.finish(msg_in)),
-                        }
+                rc["msg_out_hex"] = bytes_to_hexstr(s.start())
+                rc["key_hex"] = bytes_to_hexstr(s.finish(msg_in))
         else:
             s = spake2.SPAKE2_Symmetric.from_serialized(state, params=params)
-            return {"key_hex": bytes_to_hexstr(s.finish(msg_in)),
-                    }
+            rc["key_hex"] = bytes_to_hexstr(s.finish(msg_in))
+        rc["S_hex"] = bytes_to_hexstr(s.params.S.to_bytes())
+
+    rc["pw_scalar_dec"] = "{:d}".format(s.pw_scalar)
+    rc["secret_scalar_dec"] = "{:d}".format(s.xy_scalar)
+    rc["secret_element_hex"] = bytes_to_hexstr(s.xy_elem.to_bytes())
+    return rc

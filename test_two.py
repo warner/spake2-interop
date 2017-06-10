@@ -1,5 +1,6 @@
 from __future__ import print_function
 import sys, json
+from pprint import pprint
 from binascii import hexlify, unhexlify
 import requests
 
@@ -31,11 +32,14 @@ def run():
     urlB = sys.argv[2]
 
     a1 = call(urlA)
-    print("A1:", a1)
+    print("A1:")
+    pprint(a1)
     b1 = call(urlB, msg_in_hex=a1["msg_out_hex"])
-    print("B1:", b1)
+    print("B1:")
+    pprint(b1)
     a2 = call(urlA, state=a1["state"], msg_in_hex=b1["msg_out_hex"])
-    print("A2:", a2)
+    print("A2:")
+    pprint(a2)
     print("A key:", b1["key_hex"])
     print("B key:", a2["key_hex"])
     print("match:", b1["key_hex"] == a2["key_hex"])
